@@ -6,11 +6,12 @@ import (
 )
 
 // Add new player to players slice
-func AddNewPlayer(addr *net.UDPAddr, players *Types.UdpPlayers) {
+func AddNewPlayer(addr *net.UDPAddr, players *Types.UdpPlayers, connection *net.UDPConn, port int) {
 
 	candidate := Types.UdpPlayer{
 		IP:   addr.IP,
-		Port: addr.Port,
+		Port: port,
+		Connection: connection,
 	}
 
 	if !Contains(players, candidate) {

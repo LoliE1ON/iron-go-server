@@ -1,7 +1,7 @@
 package Udp
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/LoliE1ON/iron-go-server/Types"
 	"log"
 	"net"
@@ -10,6 +10,7 @@ import (
 var (
 	Buffer []byte = make([]byte, 1024)
 	Players Types.UdpPlayers
+	Data Types.UdpResponse
 )
 
 func Read(connection *net.UDPConn) {
@@ -23,26 +24,29 @@ func Read(connection *net.UDPConn) {
 			return
 		}
 
-		// Add new player
-		AddNewPlayer(addr, &Players)
+		err = json.Unmarshal(Buffer[0:end], &Data)
+		if err != nil {
+			log.Println("Error Unmarshal TCP data", err)
+			return
+		}
 
-		fmt.Println("Received ", string(Buffer[0:end]), " from ", addr)
-		fmt.Println("Players ", Players)
+		// Add new player
+		AddNewPlayer(addr, &Players, connection, Data.Port)
 
 		// Send Received data to all players
 		for _, player := range Players {
 
 			// Send
-			_, err := connection.WriteToUDP(Buffer[0:end], &net.UDPAddr{
+			_, err := player.Connection.WriteToUDP(Buffer[0:end], &net.UDPAddr{
 				IP: player.IP,
-				Port: 5000,
+				Port: player.Port,
 			})
+
 			if err != nil {
 				log.Fatalln("Error write to UDP channel", err)
 				return
 			}
 
-			fmt.Println("Send ", string(Buffer[0:end]), " to ", player.IP)
 		}
 
 	}

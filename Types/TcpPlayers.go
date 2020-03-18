@@ -2,6 +2,7 @@ package Types
 
 type TcpPlayer struct {
 	IP string
+	Username string
 }
 
 type TcpPlayers []TcpPlayer

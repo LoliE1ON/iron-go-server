@@ -3,51 +3,84 @@ package Tcp
 import (
 	"encoding/json"
 	"github.com/LoliE1ON/iron-go-server/Tcp/TcpController"
+	"github.com/LoliE1ON/iron-go-server/Tcp/TcpEventListener"
 	"github.com/LoliE1ON/iron-go-server/Types"
 	"log"
 	"net"
 )
 
 var (
-	Buffer []byte = make([]byte, 1024)
-	Data Types.TcpData
-	Players Types.TcpPlayers
-	Connection net.Conn
+	tcpConnection net.Conn
 )
 
 func Read(connection net.Conn) {
-	Connection = connection
 
-	// Add new player
-	AddNewPlayer(connection, &Players)
+	var (
+		tcpBuffer []byte = make([]byte, 1024)
+		tcpData Types.TcpData
+		tcpPlayers Types.TcpPlayers
+	)
+
+	tcpConnection = connection
+
+	defer func() {
+		event := Types.TcpEvent{
+			Type:    "LeftPlayer",
+			Payload: tcpData.Username,
+		}
+		TcpEventListener.SendEvent(Channel, event)
+		TcpEventListener.ConnectedClients.RemoveByIp(connection.RemoteAddr().String())
+
+		// Close the connection when you're done with it.
+		err := connection.Close()
+
+		log.Println("Close connection")
+		if err != nil {
+			log.Fatalln("Error close TCP connection", err)
+			return
+		}
+	}()
 
 	// Read the incoming connection into the buffer.
-	end, err := connection.Read(Buffer)
-	if err != nil {
-		log.Fatalln("Error reading TCP channel", err)
-		return
-	}
+	for  {
 
-	err = json.Unmarshal(Buffer[0:end], &Data)
-	if err != nil {
-		log.Fatalln("Error Unmarshal TCP data", err)
-		return
-	}
+		end, err := connection.Read(tcpBuffer)
+		if err != nil {
+			log.Println("Error reading TCP channel", err)
+			return
+		}
 
-	// Detect controller
-	handleController(Data.Type)
+		err = json.Unmarshal(tcpBuffer[0:end], &tcpData)
+		if err != nil {
+			log.Println("Error Unmarshal TCP data", err)
+			return
+		}
 
-	log.Println("Получено", Data)
-	log.Println("Игроки", Players)
+		// Add new connected client
+		client := TcpEventListener.Client{
+			Ip: connection.RemoteAddr().String(),
+			Connection: connection,
+			Username:tcpData.Username,
+		}
+		TcpEventListener.ConnectedClients.Push(client)
 
-}
+		// Add new player
+		AddNewPlayer(connection, tcpData.Username, &tcpPlayers)
 
-func handleController(controller string) {
-	switch controller {
+		// Detect controller
+		switch tcpData.Type {
 		case "connect":
-			TcpController.Connect(Connection, Data, Players)
+			TcpController.Connect(tcpConnection, tcpData, tcpPlayers, Channel)
 
 		default:
 			return
+		}
+
+		log.Println("Получено", tcpData)
+		log.Println("Игроки", tcpPlayers)
+
+
 	}
+
+
 }

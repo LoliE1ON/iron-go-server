@@ -6,10 +6,11 @@ import (
 )
 
 // Add new player to players slice
-func AddNewPlayer(connection net.Conn, players *Types.TcpPlayers) {
+func AddNewPlayer(connection net.Conn, username string, players *Types.TcpPlayers) {
 
 	candidate := Types.TcpPlayer{
 		IP: connection.RemoteAddr().String(),
+		Username: username,
 	}
 
 	if !сontains(players, candidate) {
@@ -22,7 +23,7 @@ func AddNewPlayer(connection net.Conn, players *Types.TcpPlayers) {
 func сontains(slice *Types.TcpPlayers, item Types.TcpPlayer) bool {
 
 	for _, s := range *slice {
-		if s.IP == item.IP {
+		if s.Username == item.Username{
 			return true
 		}
 	}

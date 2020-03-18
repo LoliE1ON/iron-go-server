@@ -1,22 +1,21 @@
 package Tcp
 
 import (
+	"github.com/LoliE1ON/iron-go-server/Types"
 	"log"
 	"net"
 )
 
+var Channel chan Types.TcpEvent
+
 // Handles incoming requests.
-func Handle(connection net.Conn) {
-	
+func Handle(channel chan Types.TcpEvent, connection net.Conn) {
+	Channel = channel
+
+	log.Println("New connection")
+
 	// Read channel
 	Read(connection)
-	
-	// Close the connection when you're done with it.
-	err := connection.Close()
-	if err != nil {
-		log.Fatalln("Error close TCP connection", err)
-		return
-	}
 
 }
 
